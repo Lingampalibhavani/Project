@@ -1,0 +1,64 @@
+create database hospitality;
+use hospitality;
+select*from fact_aggregated_bookings;
+select*from dim_hotels;
+select*from dim_rooms;
+select*from dim_date;
+
+#revenue generated
+select sum(revenue_realized) as total_revenue from fact_bookings;
+select sum(revenue_generated) as total_revenue_generated from fact_bookings;
+
+#total bookings
+select count(booking_id) as total_bookings from fact_bookings;
+
+#occupancy
+select (sum(successful_bookings)/sum(capacity)*100) as occupancy_rate from fact_aggregated_bookings;
+select*from fact_bookings;
+
+#cancellation rate
+select 
+(sum(case when booking_status="cancelled" then 1 else 0 end)/count(*))*100 as cancellation_rate from fact_bookings;
+set sql_safe_updates=0;
+
+#revenue by state and hotels
+select h.city,h.property_name,sum(fb.revenue_realized) as total_revenue
+from dim_hotels h
+join fact_bookings fb on h.property_id=fb.property_id 
+group by h.city,h.property_name order by h.city,h.property_name;
+
+#class wise revenue
+select r.room_class,sum(fb.revenue_realized) as total_revenue from dim_rooms r join
+fact_bookings fb on r.room_id=fb.room_category group by r.room_class;
+
+#checked out,cancelled,no show
+select sum(revenue_realized) as total_revenue,booking_status, 
+count(*) as total_count from fact_bookings
+where booking_status in("checked out","cancelled","no show")
+ group by booking_status order by total_count;
+
+#successful bookings by room cateogry
+select fb.room_category,sum(fab.successful_bookings) as total_bookings from fact_bookings fb
+join fact_aggregated_bookings fab on fab.property_id=fb.property_id group by room_category;
+
+#revenue by cateogry
+select room_category,sum(revenue_realized) as total_revenue from fact_bookings group by room_category;
+select *from dim_date;
+select*from fact_bookings;
+select d.day_type,sum(fb.revenue_realized) as total_revenue from dim_date d
+join fact_bookings fb on d.date=fb.check_in_date group by d.day_type;
+
+#weekday and weekend revenue
+select case when dayofweek(check_in_date) in (1,7) then "weekend"
+else "weekday" end as day_type,sum(revenue_generated) as total_revenue from 
+fact_bookings group by day_type;
+
+#utilized capacity
+select check_in_date,room_category,
+sum(successful_bookings) as total_bookings,
+sum(capacity) as total_capacity,
+round(sum(successful_bookings)/sum(capacity)*100,2) as utilized_percentage
+from fact_aggregated_bookings
+group by check_in_date,room_category
+order by
+check_in_date,room_category;
