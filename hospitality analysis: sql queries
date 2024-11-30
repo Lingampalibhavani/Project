@@ -49,9 +49,13 @@ select d.day_type,sum(fb.revenue_realized) as total_revenue from dim_date d
 join fact_bookings fb on d.date=fb.check_in_date group by d.day_type;
 
 #weekday and weekend revenue
-select case when dayofweek(check_in_date) in (1,7) then "weekend"
-else "weekday" end as day_type,sum(revenue_generated) as total_revenue from 
-fact_bookings group by day_type;
+select
+    dim_date.day_type,
+    sum(fact_bookings.revenue_realized) AS TotalRevenue,
+    count(fact_bookings.booking_id) AS TotalBookings
+from dim_date join
+    fact_bookings on fact_bookings.check_in_date
+group by dim_date.day_type;
 
 #utilized capacity
 select check_in_date,room_category,
@@ -62,3 +66,14 @@ from fact_aggregated_bookings
 group by check_in_date,room_category
 order by
 check_in_date,room_category;
+
+#trend analysis
+select dim_hotels.city,sum(fact_bookings.revenue_generated) as  RevenueGenerated ,sum(fact_bookings.revenue_realized) as RevenueRealized
+from dim_hotels join fact_bookings
+on dim_hotels.property_id=fact_bookings.property_id
+group by dim_hotels.city;
+
+#weekly trend analysis
+SELECT DIM_DATE.`WEEK NO`,SUM(FACT_BOOKINGS.REVENUE_REALIZED) AS `Total Revenue`,COUNT(FACT_BOOKINGS.BOOKING_ID) AS `Total Bookings`
+FROM DIM_DATE JOIN FACT_BOOKINGS ON DIM_DATE.DATE = FACT_BOOKINGS.CHECK_IN_DATE 
+GROUP BY DIM_DATE.`WEEK NO`;
